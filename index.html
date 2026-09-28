@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>LifeWarp builds</title>
+<style>
+  :root { color-scheme: dark; --bg: #0c0a10; --panel: #1a1520; --line: #2e2638; --text: #efe8f7; --muted: #a89fbd; --amber: #ffb347; --bad: #ff7a6b; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 -apple-system, system-ui, sans-serif; }
+  main { max-width: 420px; margin: 0 auto; padding: 56px 20px; display: grid; gap: 18px; }
+  h1 { margin: 0; font: 700 28px/1.1 ui-monospace, Menlo, monospace; color: var(--amber); letter-spacing: 0.04em; }
+  p { margin: 0; color: var(--muted); }
+  form { display: grid; gap: 10px; }
+  input { font: 17px ui-monospace, Menlo, monospace; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  input:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+  button, .install { font: 600 17px -apple-system, system-ui, sans-serif; padding: 13px 16px; border-radius: 10px; border: 0; background: var(--amber); color: #2a1604; text-align: center; text-decoration: none; cursor: pointer; }
+  .install[hidden], #error[hidden] { display: none; }
+  #error { color: var(--bad); }
+  small { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>LIFEWARP</h1>
+  <p>Enter the password to get the install link. Open this page in Safari on a registered iPhone.</p>
+  <form id="gate" autocomplete="off">
+    <input id="pw" type="password" aria-label="Password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="password" required>
+    <button type="submit">Unlock</button>
+  </form>
+  <p id="error" hidden>That password doesn't match a build.</p>
+  <a class="install" id="install" hidden>Install LifeWarp</a>
+  <small>Tap Install, then find LifeWarp on your home screen. If iOS asks, turn on Developer Mode in Settings → Privacy &amp; Security.</small>
+</main>
+<script>
+  async function sha256(text) {
+    const data = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  document.getElementById('gate').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('error'), link = document.getElementById('install');
+    err.hidden = true; link.hidden = true;
+    const folder = await sha256('lifewarp:' + document.getElementById('pw').value.trim());
+    const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+    const manifest = base + folder + '/manifest.plist';
+    try {
+      const r = await fetch(manifest, { method: 'HEAD', cache: 'no-store' });
+      if (!r.ok) throw new Error('missing');
+      link.href = 'itms-services://?action=download-manifest&url=' + encodeURIComponent(manifest);
+      link.hidden = false;
+    } catch (_) { err.hidden = false; }
+  });
+</script>
+</body>
+</html>
